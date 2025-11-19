@@ -5,6 +5,7 @@ import 'package:matcha/screens/game_variant2_screen.dart';
 import 'package:matcha/screens/settings_screen.dart';
 import 'package:matcha/screens/tea_ceremony_info_screen.dart';
 import 'package:matcha/screens/credits_screen.dart';
+import 'package:matcha/widgets/chawan_widget.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -18,12 +19,25 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             children: [
               const Spacer(),
-              // Titel + Platz für spätere große Chawan-Illustration
-              Text('Matcha', style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                  fontWeight: FontWeight.w300, letterSpacing: 8)),
-              const SizedBox(height: 80),
 
-              // Die zwei Varianten-Buttons
+              Text(
+                'Matcha',
+                style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                      fontWeight: FontWeight.w300,
+                      letterSpacing: 8,
+                    ),
+              ),
+
+              const SizedBox(height: 60),
+
+              // Platzhalter-Chawan (im HomeScreen nur Deko → keine Funktion)
+              const ChawanWidget(
+                onTap: doNothing,
+                onLongPressGrab: doNothing,
+              ),
+
+              const SizedBox(height: 60),
+
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -43,14 +57,16 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
+
               const SizedBox(height: 40),
+
               FilledButton.tonal(
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GameVariant2Screen())),
                 child: const Text('Solo gegen KI'),
               ),
+
               const Spacer(),
 
-              // Untere Button-Leiste
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -68,4 +84,7 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+
+  // Dummy-Funktion, damit const möglich ist
+  static void doNothing() {}
 }
