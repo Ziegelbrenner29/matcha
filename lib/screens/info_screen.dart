@@ -1,1 +1,14 @@
-// KI-Schwierigkeit, Sound-Variante
+// lib/screens/info_screen.dart
+import 'package:flutter/material.dart';
+
+class InfoScreen extends StatelessWidget {
+  const InfoScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Teezeremonie Info')),
+      body: const Center(child: Text('Die traditionelle Konpira fune fune Teezeremonie...')),
+    );
+  }
+}

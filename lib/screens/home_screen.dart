@@ -76,19 +76,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ),
 
-              // Footer – komplett ohne const (Screens haben keinen const-Constructor)
+              // Footer – jetzt wieder mit const (dank _FooterIcon + const in Screens)
               Align(
                 alignment: Alignment.bottomCenter,
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 40),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _footerIcon(Icons.settings, SettingsScreen()),
-                      const SizedBox(width: 40),
-                      _footerIcon(Icons.info_outline, InfoScreen()),
-                      const SizedBox(width: 40),
-                      _footerIcon(Icons.favorite_outline, CreditsScreen()),
+                    children: const [
+                      _FooterIcon(icon: Icons.settings, screen: SettingsScreen()),
+                      SizedBox(width: 40),
+                      _FooterIcon(icon: Icons.info_outline, screen: InfoScreen()),
+                      SizedBox(width: 40),
+                      _FooterIcon(icon: Icons.favorite_outline, screen: CreditsScreen()),
                     ],
                   ),
                 ),
@@ -161,7 +161,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _footerIcon(IconData icon, Widget screen) {
+  @override
+  void dispose() {
+    _splitController.dispose();
+    super.dispose();
+  }
+}
+
+// Private Footer-Icon Widget – außerhalb der State-Klasse!
+class _FooterIcon extends StatelessWidget {
+  final IconData icon;
+  final Widget screen;
+
+  const _FooterIcon({required this.icon, required this.screen});
+
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => screen)),
       child: Container(
@@ -170,14 +185,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           color: Color(0x33BC9F7A),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, size: 32, color: const Color(0xFF4A3728)),
+        child: Icon(icon, size: 32, color: Color(0xFF4A3728)),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _splitController.dispose();
-    super.dispose();
   }
 }
