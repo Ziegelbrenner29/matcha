@@ -1,34 +1,34 @@
 // lib/widgets/player_indicator.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:matcha/providers/game_provider.dart';
 
-class PlayerIndicator extends StatelessWidget {
-  final bool isActive;
-
-  const PlayerIndicator({super.key, required this.isActive});
+class PlayerIndicator extends ConsumerWidget {
+  final bool isUpper;
+  const PlayerIndicator({required this.isUpper, super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 800),
-      curve: Curves.easeInOut,
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white,
-        border: Border.all(
-          color: isActive ? const Color(0xFF98BF8A) : Colors.grey[300]!,
-          width: isActive ? 6 : 3,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(gameProvider);
+    final isTurn = (isUpper && !state.isPlayer1Turn) || (!isUpper && state.isPlayer1Turn);
+
+    return Align(
+      alignment: isUpper ? Alignment.topCenter : Alignment.bottomCenter,
+      child: AnimatedOpacity(
+        opacity: isTurn ? 0.8 : 0.0,
+        duration: const Duration(milliseconds: 300),
+        child: Container(
+          margin: EdgeInsets.only(top: isUpper ? 40 : 0, bottom: !isUpper ? 40 : 0),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.brown.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(30),
+          ),
+          child: Text(
+            'Dein Zug!',
+            style: TextStyle(fontSize: 24, color: Colors.brown[900]),
+          ),
         ),
-        boxShadow: isActive
-            ? [
-                BoxShadow(
-                  color: const Color(0xFF98BF8A).withOpacity(0.6),
-                  blurRadius: 20,
-                  spreadRadius: 8,
-                )
-              ]
-            : null,
       ),
     );
   }

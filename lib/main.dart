@@ -1,38 +1,34 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:matcha/screens/home_screen.dart';
+import 'package:matcha/services/beat_engine.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Immer Portrait (hochkant) erzwingen
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
   runApp(const ProviderScope(child: MatchaApp()));
 }
 
-class MatchaApp extends StatelessWidget {
+class MatchaApp extends ConsumerWidget {
   const MatchaApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
       title: 'Matcha',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF98BF8A), // Matcha-Grün
-          brightness: Brightness.light,
-        ),
-        scaffoldBackgroundColor: Colors.white,
+        fontFamily: 'Zen',
+        scaffoldBackgroundColor: const Color(0xFFF5F0E1),
       ),
-      builder: (context, child) {
-        // Fix für Android 15 / One UI 7 Overflow-Warnung (10 px unten)
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            padding: EdgeInsets.zero,        // entfernt System-Gesten-Padding
-            viewInsets: EdgeInsets.zero,     // entfernt Tastatur-Overlays etc.
-          ),
-          child: child!,
-        );
-      },
       home: const HomeScreen(),
     );
   }

@@ -1,19 +1,30 @@
 name: matcha
-description: Matcha-pon – das zen-digitale Tee-Trinkspiel
+description: Matcha – das pure digitale Konpira fune fune Tee-Trinkspiel mit Fake-Out-Zen
 publish_to: "none"
-version: 1.0.1+1
+version: 1.0.0+1
+
 environment:
-  sdk: ^3.5.0
+  sdk: ">=3.5.0 <4.0.0"
+  flutter: ">=3.24.0"
 
 dependencies:
   flutter:
     sdk: flutter
+
+  # State Management
   flutter_riverpod: ^2.5.1
-  riverpod: ^2.5.1
-  just_audio: ^0.9.40
+
+  # Audio & Beat-Engine
+  just_audio: ^0.9.41
+
+  # Haptics (DON! + Fake-Out Vibration)
   haptic_feedback: ^0.4.0
+
+  # Wunderschöne Animationen (Chawan fliegen, Fake-Out, Wellen)
   rive: ^0.13.9
-  
+
+  # Optional: In-App-Purchase für 1,99 € Einmalkauf (später aktivieren)
+  # in_app_purchase: ^3.2.0
 
 dev_dependencies:
   flutter_test:
@@ -23,13 +34,24 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
   assets:
     - assets/audio/
-    - assets/rive/
     - assets/images/
+    - assets/rive/
 
-  # Später für schöne japanische Schrift (optional schon jetzt)
+  # Zen-Fonts – auskom engagements, bis du die TTFs wirklich reinlegst (dann einfach auskommentieren!)
   # fonts:
-  #   - family: ZenKakuGothic
+  #   - family: Zen
   #     fonts:
   #       - asset: assets/fonts/ZenKakuGothicNew-Regular.ttf
+  #       - asset: assets/fonts/ZenKakuGothicNew-Bold.ttf
+  #         weight: 700
+  #   - family: Shakuhachi
+  #     fonts:
+  #       - asset: assets/fonts/NotoSansJP-Regular.ttf
+
+# Splash Screen (optional – später aktivieren)
+# flutter_native_splash:
+#   color:"#F5F0E1"
+#   image: assets/images/chawan_splash.png

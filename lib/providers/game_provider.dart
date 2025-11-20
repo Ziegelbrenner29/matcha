@@ -1,158 +1,165 @@
-// lib/providers/game_provider.dart  ← komplett ersetzen!
-import 'dart:async';
-import 'dart:math';
-
-import 'package:flutter/material.dart';
+// lib/providers/game_provider.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:haptic_feedback/haptic_feedback.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:matcha/models/game_state.dart';
+import 'package:matcha/core/constants.dart';
+import 'package:matcha/services/haptics_service.dart';
+import 'package:matcha/services/beat_engine.dart';
 
-final gameProvider = ChangeNotifierProvider<GameProvider>((ref) => GameProvider._());
+final gameProvider = StateNotifierProvider<GameNotifier, MatchaGameState>((ref) {
+  return GameNotifier(ref);
+});
 
-class GameProvider extends ChangeNotifier {
-  GameProvider._() {
-    _vibrate = ([HapticsType? type]) => Haptics.vibrate(type ?? HapticsType.light);
-    Haptics.canVibrate().then((value) => _canVibrate = value);
+// Sound-Player für SFX (tok, pon, don, wind)
+final AudioPlayer _sfxPlayer = AudioPlayer();
+
+class GameNotifier extends StateNotifier<MatchaGameState> {
+  final Ref ref;
+  DateTime? _lastBeatTime;
+  int _expectedTapType = 0; // 0 = bowl, 1 = hand → wechselt pro Beat
+
+  GameNotifier(this.ref) : super(MatchaGameState(phase: GamePhase.waitingForTapOnBowl)) {
+    // Beat-Engine Callback setzen
+    ref.read(beatEngineProvider).onBeat = _onBeat;
   }
 
-  // State
-  bool isPlayer1Turn = true;
-  bool isGameOver = false;
-  String winner = '';
-  int tapCountSinceLastGrab = 0;
+  void _onBeat() {
+    _lastBeatTime = DateTime.now();
+    _expectedTapType = _expectedTapType == 0 ? 1 : 0;
 
-  Timer? _reactionTimer;
-  bool _waitingForOpponentReaction = false;
+    // Nur wenn wir auf normalen Tap warten → Timeout-Check
+    if (state.phase == GamePhase.waitingForTapOnBowl ||
+        state.phase == GamePhase.waitingForTapOnHand) {
+      Future.delayed(Duration(milliseconds: (timingWindowMs * 2).toInt()), () {
+        if (_lastBeatTime != null &&
+            DateTime.now().difference(_lastBeatTime!) >
+                Duration(milliseconds: (timingWindowMs * 2).toInt())) {
+          _gameOver('Zu langsam!');
+        }
+      });
+    }
+  }
 
-  late final Future<void> Function([HapticsType? type]) _vibrate;
-  bool _canVibrate = false;
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _isInTimingWindow() {
+    if (_lastBeatTime == null) return false;
+    final diff = DateTime.now().difference(_lastBeatTime!).inMilliseconds.abs();
+    return diff <= timingWindowMs;
+  }
 
-  // ====================== Aktionen ======================
+  // === GESTEN-EVENTS ===
 
-  void onTapChawan() {
-    if (isGameOver || _waitingForOpponentReaction) return;
+  void onSingleTap(bool isBowlZone, bool isPlayer1Area) async {
+    if (state.phase != GamePhase.waitingForTapOnBowl && state.phase != GamePhase.waitingForTapOnHand) return;
+    if ((state.isPlayer1Turn && !isPlayer1Area) || (!state.isPlayer1Turn && isPlayer1Area)) return;
 
-    tapCountSinceLastGrab++;
-    _playSound('klack.mp3');
-    _vibrateLight();
-
-    // Zufalls-Umkippen
-    if (tapCountSinceLastGrab > 12 && Random().nextDouble() < 0.05 + (tapCountSinceLastGrab - 12) * 0.015) {
-      _endGame('random');
+    final expectedBowl = _expectedTapType == 0;
+    if (isBowlZone != expectedBowl) {
+      await _playSfx(soundDon); // Falsch → lautes DON als Strafe
+      _gameOver('Falsche Aktion!');
+      return;
+    }
+    if (!_isInTimingWindow()) {
+      await _playSfx(soundDon);
+      _gameOver('Falsches Timing!');
       return;
     }
 
-    // Normaler Tap → Zug beendet, KI ist dran
-    isPlayer1Turn = false;
-    _waitingForOpponentReaction = false;
-    notifyListeners();               // ← das fehlte!
-    _kiMakesMove();
+    // RICHTIG!
+    await _playSfx(isBowlZone ? soundTok : soundPon);
+    HapticsService.light();
+    state = state.copyWith(isPlayer1Turn: !state.isPlayer1Turn);
   }
 
-  void onLongPressGrab() {
-    if (isGameOver || _waitingForOpponentReaction) return;
+  void onLiftBowl(bool isPlayer1) async {
+    if (state.bowlOwner != BowlOwner.none) return;
+    if ((isPlayer1 && !state.isPlayer1Turn) || (!isPlayer1 && state.isPlayer1Turn)) return;
 
-    _playSound('schnapp.mp3');
-    _vibrateMedium();
+    await _playSfx(soundWind);
+    HapticsService.medium();
 
-    isPlayer1Turn = false;
-    _waitingForOpponentReaction = true;
-    tapCountSinceLastGrab = 0;
-
-    notifyListeners();               // ← wichtig!
-
-    // KI hat jetzt genau 850 ms zum Reagieren
-    _reactionTimer = Timer(const Duration(milliseconds: 850), () {
-      if (_waitingForOpponentReaction) {
-        _endGame('player1'); // KI zu langsam → Spieler 1 gewinnt
-      }
-    });
-
-    _kiReactToGrab();
+    state = state.copyWith(
+      phase: GamePhase.bowlTakenWaitingForKnock,
+      bowlOwner: isPlayer1 ? BowlOwner.player1 : BowlOwner.player2OrKI,
+    );
   }
 
-  void onDoubleTapScreen() {
-    if (! _waitingForOpponentReaction || isGameOver) {
-      // Double-Tap außerhalb der Wartezeit → ignorieren oder Zufalls-Umkippen triggern
+  void onDoubleTapMiddle() async {
+    if (state.phase != GamePhase.bowlTakenWaitingForKnock) {
+      await _playSfx(soundDon);
+      _gameOver('Geklopft obwohl Schale da!');
+      return;
+    }
+    if (!_isInTimingWindow()) {
+      await _playSfx(soundDon);
+      _gameOver('Falsches Timing beim Klopfen!');
       return;
     }
 
-    _waitingForOpponentReaction = false;
-    _reactionTimer?.cancel();
+    await _playSfx(soundDon);
+    HapticsService.heavy();
 
-    _playSound('toktok.mp3');
-    _vibrateStrong();
-
-    isPlayer1Turn = true;
-    notifyListeners();               // ← Indicator wechselt zurück
-
-    // KI ist wieder dran
-    _kiMakesMove();
+    state = state.copyWith(phase: GamePhase.bowlTakenWaitingForOwnerDecision);
   }
 
-  void newGame() {
-    isPlayer1Turn = true;
-    isGameOver = false;
-    winner = '';
-    tapCountSinceLastGrab = 0;
-    _waitingForOpponentReaction = false;
-    _reactionTimer?.cancel();
-    notifyListeners();
+  // Wird aufgerufen, wenn der Besitzer die Finger loslässt → ehrlich abstellen
+  void onOwnerDecisionRelease() {
+    _placeBowlHonestly();
   }
 
-  // ====================== KI ======================
-
-  void _kiMakesMove() async {
-    await Future.delayed(Duration(milliseconds: 600 + Random().nextInt(600)));
-    if (isGameOver) return;
-
-    if (Random().nextDouble() < 0.75) {
-      onTapChawan();                 // KI tippt meistens nur
-    } else {
-      onLongPressGrab();             // 25 % Chance, dass KI greift
+  // Wird aufgerufen bei Pinch-Out oder halten → Fake-Out!
+  void onOwnerDecisionFake() async {
+    if (state.fakeCount >= maxFakesInARow) {
+      _placeBowlHonestly(); // Zwang nach max Fakes
+      return;
     }
+
+    HapticsService.light(); // Teuflisches Kichern
+    state = state.copyWith(
+      phase: GamePhase.bowlTakenWaitingForKnock,
+      fakeCount: state.fakeCount + 1,
+    );
+
+    // Kurze Berührung + sofort wieder hoch
+    await Future.delayed(fakeTouchDuration);
+    // Animation wird vom ChawanWidget übernommen
   }
 
-  void _kiReactToGrab() async {
-    await Future.delayed(Duration(milliseconds: 400 + Random().nextInt(400))); // 400–800 ms Reaktion
-    if (! _waitingForOpponentReaction || isGameOver) return;
-
-    // KI schafft es in ~80 % der Fälle
-    if (Random().nextDouble() < 0.8) {
-      onDoubleTapScreen();
-    } else {
-      // KI zu langsam → Spieler 1 gewinnt
-      _endGame('player1');
-    }
+  void _placeBowlHonestly() {
+    final nextPhase = _expectedTapType == 0 ? GamePhase.waitingForTapOnBowl : GamePhase.waitingForTapOnHand;
+    state = state.copyWith(
+      phase: nextPhase,
+      bowlOwner: BowlOwner.none,
+      fakeCount: 0,
+      isPlayer1Turn: !state.isPlayer1Turn,
+    );
   }
 
-  // ====================== Helfer ======================
-
-  void _endGame(String who) {
-    winner = who;
-    isGameOver = true;
-    _playSound('gong.mp3');
-    _vibrateStrong();
-    notifyListeners();
+  void _gameOver(String reason) async {
+    await _playSfx(soundDon); // Trauriges DON
+    HapticsService.heavy();
+    final winner = state.isPlayer1Turn ? 'Gegner / KI' : 'Du';
+    state = state.copyWith(
+      phase: GamePhase.gameOver,
+      winner: winner,
+    );
   }
 
-  Future<void> _playSound(String file) async {
+  Future<void> _playSfx(String asset) async {
     try {
-      await _audioPlayer.stop();
-      await _audioPlayer.setAsset('assets/audio/$file');
-      await _audioPlayer.play();
+      await _sfxPlayer.setAsset(asset);
+      await _sfxPlayer.play();
     } catch (_) {}
   }
 
-  void _vibrateLight() => _canVibrate ? _vibrate(HapticsType.light) : null;
-  void _vibrateMedium() => _canVibrate ? _vibrate(HapticsType.medium) : null;
-  void _vibrateStrong() => _canVibrate ? _vibrate(HapticsType.success) : null;
+  void reset() {
+    state = MatchaGameState(phase: GamePhase.waitingForTapOnBowl);
+    _expectedTapType = 0;
+    _lastBeatTime = null;
+  }
 
   @override
   void dispose() {
-    _reactionTimer?.cancel();
-    _audioPlayer.dispose();
+    _sfxPlayer.dispose();
     super.dispose();
   }
 }

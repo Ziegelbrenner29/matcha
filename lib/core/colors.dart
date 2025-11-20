@@ -1,9 +1,6 @@
+// lib/core/colors.dart
 import 'package:flutter/material.dart';
 
-class MatchaColors {
-  static const Color background = Color(0xFFFDFDFD);
-  static const Color matchaGreen = Color(0xFF98B98A);
-  static const Color matchaGreenDark = Color(0xFF6B8E5A);
-  static const Color bamboo = Color(0xFFE8E5D9);
-  static const Color text = Color(0xFF333333);
-}
+const Color background = Color(0xFFF5F0E1);
+const Color tatami = Color(0xFFE8DAB2);
+const Color chawanBrown = Color(0xFF8B6F47);
