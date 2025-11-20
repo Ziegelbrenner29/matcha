@@ -31,6 +31,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^4.0.0
   flutter_native_splash: ^2.4.1
+  flutter_launcher_icons: ^0.14.1   # <<< NEU: für unser goldenes 茶-Icon!
 
 flutter:
   uses-material-design: true
@@ -39,8 +40,9 @@ flutter:
     - assets/audio/
     - assets/images/
     - assets/rive/
+    - assets/icons/                  # <<< NEU: unser Icon-Ordner
 
-  # Zen-Fonts – auskom engagements, bis du die TTFs wirklich reinlegst (dann einfach auskommentieren!)
+  # Zen-Fonts – auskommentiert, bis du die TTFs wirklich reinlegst
   # fonts:
   #   - family: Zen
   #     fonts:
@@ -53,5 +55,13 @@ flutter:
 
 # Splash Screen (optional – später aktivieren)
 # flutter_native_splash:
-#   color:"#F5F0E1"
+#   color: "#F5F0E1"
 #   image: assets/images/chawan_splash.png
+
+# ====== APP ICON KONFIG – das macht den goldenen Zauber! ✨======
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icons/matcha_icon.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
