@@ -1,0 +1,13 @@
+flutter_native_splash:
+  color: "#FAFAFA"                  # sanftes Weiß mit Hauch von Bambus
+  image: assets/images/splash_logo.png   # unser neues Logo
+  android: true
+  ios: true
+  web: false
+
+  # Optional: dunkler Modus (falls du später willst)
+  # dark_color: "#121212"
+  # dark_image: assets/images/splash_logo_dark.png
+
+  # Fullscreen auf Android (versteckt Statusleiste)
+  android_fullscreen: true
