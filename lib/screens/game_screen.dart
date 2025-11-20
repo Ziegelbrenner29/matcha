@@ -6,24 +6,36 @@ import 'package:matcha/models/game_state.dart';
 import 'package:matcha/services/beat_engine.dart';
 import 'package:matcha/widgets/chawan_widget.dart';
 import 'package:matcha/widgets/zen_background.dart';
-import 'package:matcha/widgets/player_indicator.dart';  // <-- Jetzt sauber!
+import 'package:matcha/widgets/player_indicator.dart';
 import 'package:matcha/core/constants.dart';
 
 class GameScreen extends ConsumerWidget {
   final String variant;
+  final bool isVsKI;  // <-- NEU: true = Solo vs KI, false = Hot-Seat 2-Spieler
 
-  const GameScreen({required this.variant, super.key});
+  const GameScreen({
+    required this.variant,
+    required this.isVsKI,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final gameState = ref.watch(gameProvider);
     final size = MediaQuery.of(context).size;
 
+    // Beat-Engine nur starten, wenn Spiel wirklich beginnt
     ref.listen(gameProvider, (_, state) {
       if (state.phase == GamePhase.waitingForTapOnBowl && state.winner.isEmpty) {
         ref.read(beatEngineProvider).start(variant);
       }
     });
+
+    // KI-Modus-Info ans GameProvider weitergeben (für spätere KI-Logik)
+    // Wir setzen es einmal beim Start – später erweitern wir den Provider
+    if (gameState.phase == GamePhase.waitingForTapOnBowl && gameState.winner.isEmpty) {
+      ref.read(gameProvider.notifier).setGameMode(isVsKI);
+    }
 
     return Scaffold(
       body: GestureDetector(
@@ -48,6 +60,11 @@ class GameScreen extends ConsumerWidget {
                     Text(
                       gameState.winner == 'Du' ? 'Du gewinnst!' : 'Verloren!',
                       style: const TextStyle(fontSize: 64, color: Colors.brown, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      isVsKI ? 'Zen-Meister war stärker...' : 'Dein Freund hat dich reingelegt!',
+                      style: const TextStyle(fontSize: 24, color: Colors.brown),
                     ),
                     const SizedBox(height: 40),
                     ElevatedButton(
