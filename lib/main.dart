@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:matcha/screens/home_screen.dart';
-import 'package:matcha/services/beat_engine.dart';
+
+/// Globaler RouteObserver – für Auto-Stop beim Verlassen von Settings!
+final routeObserver = RouteObserver<ModalRoute<void>>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +32,7 @@ class MatchaApp extends ConsumerWidget {
         scaffoldBackgroundColor: const Color(0xFFF5F0E1),
       ),
       home: const HomeScreen(),
+      navigatorObservers: [routeObserver],  // <<< HIER REIN – Auto-Stop aktiviert!
     );
   }
 }

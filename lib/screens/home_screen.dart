@@ -1,6 +1,5 @@
 // lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';   // <<< NEU: für Test-Button
 import 'package:matcha/screens/game_screen.dart';
 import 'package:matcha/screens/settings_screen.dart';
 import 'package:matcha/screens/info_screen.dart';
@@ -41,20 +40,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _splitController.reverse().then((_) => setState(() => _selectedVariant = null));
   }
 
-  // === TEST-BUTTON: Spielt Konpira fune fune sofort ab (Volume 1.0, looped) ===
-  void _testKonpiraMusic() async {
-    final player = AudioPlayer();
-    try {
-      await player.setAsset('assets/audio/konpira_fune_fune.mp3');
-      await player.setLoopMode(LoopMode.one);
-      await player.setVolume(1.0);
-      await player.play();
-      debugPrint('🎶 Test-Konpira gestartet – hörst du den Shamisen?');
-    } catch (e) {
-      debugPrint('Test-Fehler: $e');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -88,20 +73,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     const SizedBox(height: 40),
                     _buildVariantButton('Matcha pon!', 'matchapon'),
 
-                    // === TEST-BUTTON (nur zum Debuggen – später wieder löschen!) ===
-                    const SizedBox(height: 60),
-                    ElevatedButton(
-                      onPressed: _testKonpiraMusic,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green.shade700,
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                      ),
-                      child: const Text(
-                        '🔊 Test Konpira Gesang',
-                        style: TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                    ),
+                    // <<< TEST-BUTTON ENTFERNT – jetzt nur noch in Settings!
                   ],
                 ),
               ),

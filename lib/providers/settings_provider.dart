@@ -17,9 +17,9 @@ extension AppThemeExtension on AppTheme {
   };
 
   String get displayName => switch (this) {
-    AppTheme.washiClassic => 'Washi Klassik',
-    AppTheme.matchaGarden => 'Matcha Garten',
-    AppTheme.goldenTemple => 'Goldener Tempel',
+    AppTheme.washiClassic => '和紙古典 Washi Classic',
+    AppTheme.matchaGarden => '抹茶庭園 Matcha Garden',
+    AppTheme.goldenTemple => '金寺 Golden Temple',
   };
 }
 
@@ -78,6 +78,8 @@ class AppSettings {
 final settingsProvider = StateNotifierProvider<SettingsNotifier, AppSettings>((ref) {
   return SettingsNotifier();
 });
+
+final _testMusicPlayingProvider = StateProvider<bool>((ref) => false);
 
 class SettingsNotifier extends StateNotifier<AppSettings> {
   SettingsNotifier() : super(const AppSettings());

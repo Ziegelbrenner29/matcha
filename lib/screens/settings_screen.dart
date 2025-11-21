@@ -1,15 +1,45 @@
 // lib/screens/settings_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:matcha/main.dart';  // <<< routeObserver!
 import 'package:matcha/providers/settings_provider.dart';
+import 'package:matcha/providers/game_provider.dart';
 
-class SettingsScreen extends ConsumerWidget {
+final _testMusicPlayingProvider = StateProvider<bool>((ref) => false);
+
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> with RouteAware {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPushNext() {
+    // Wird aufgerufen, wenn Settings verlassen wird (Back-Button, pop, etc.)
+    ref.read(gameProvider.notifier).stopMusic();
+    ref.read(_testMusicPlayingProvider.notifier).state = false;
+    debugPrint('🎶 Settings verlassen – Gesang gestoppt + Button zurückgesetzt');
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
+    final isPlaying = ref.watch(_testMusicPlayingProvider);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -49,11 +79,34 @@ class SettingsScreen extends ConsumerWidget {
                   value: settings.bgmVolume,
                   onChanged: notifier.updateBgmVolume,
                 ),
-                _switchTile(
-                  title: 'Gesang (Konpira fune fune)',
-                  value: settings.voiceEnabled,
-                  onChanged: notifier.updateVoiceEnabled,
+
+                // <<< Gesang Test/Stop-Button – perfekt Toggle + Auto-Stop!
+                const SizedBox(height: 16),
+                const Text('Gesang (Konpira fune fune)', style: TextStyle(fontSize: 18, color: Color(0xFF4A3728))),
+                const SizedBox(height: 12),
+                Center(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isPlaying ? Colors.red.shade700 : Colors.green.shade700,
+                      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 18),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    ),
+                    onPressed: () async {
+                      final newState = !isPlaying;
+                      ref.read(_testMusicPlayingProvider.notifier).state = newState;
+                      if (newState) {
+                        await ref.read(gameProvider.notifier).startMusic('konpira');
+                      } else {
+                        ref.read(gameProvider.notifier).stopMusic();
+                      }
+                    },
+                    child: Text(
+                      isPlaying ? 'Stop Gesang' : 'Test Konpira Gesang',
+                      style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ),
+
                 _bambooSlider(
                   label: 'Soundeffekte (tok/pon/DON!)',
                   value: settings.sfxVolume,
@@ -84,38 +137,56 @@ class SettingsScreen extends ConsumerWidget {
 
                 const SizedBox(height: 32),
                 _sectionTitle('Visuals'),
-                // <<< NEU: Theme-Wechsler – funktioniert 100% in Flutter 3.24+!
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Theme', style: TextStyle(fontSize: 18, color: Color(0xFF4A3728))),
-                      const SizedBox(height: 12),
-                      SegmentedButton<AppTheme>(
-                        selectedIcon: const Icon(Icons.check, color: Colors.white),
-                        style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-                            if (states.contains(WidgetState.selected)) {
-                              return const Color(0xFF8B9F7A); // ausgewählt: Zen-Grün
-                            }
-                            return Colors.white.withOpacity(0.3); // normal
-                          }),
-                          foregroundColor: WidgetStateProperty.all(Colors.white),
-                          side: WidgetStateProperty.all(const BorderSide(color: Color(0xFF8B9F7A), width: 2)),
-                        ),
-                        segments: AppTheme.values.map((t) => ButtonSegment(
-                          value: t,
-                          label: Text(t.displayName, style: const TextStyle(fontSize: 14)),
-                        )).toList(),
-                        selected: {settings.theme},
-                        onSelectionChanged: (selection) {
-                          notifier.setTheme(selection.first);
-                        },
+
+                // <<< Theme-Wechsler mit großen Buttons + Kanji + Romaji + Icon
+                ...AppTheme.values.map((theme) {
+                  final isSelected = settings.theme == theme;
+                  final icon = switch (theme) {
+                    AppTheme.washiClassic => Icons.auto_stories,
+                    AppTheme.matchaGarden => Icons.local_florist,
+                    AppTheme.goldenTemple => Icons.account_balance,
+                  };
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isSelected ? const Color(0xFF8B9F7A) : Colors.transparent,
+                        foregroundColor: isSelected ? Colors.white : const Color(0xFF4A3728),
+                        elevation: isSelected ? 8 : 2,
+                        shadowColor: isSelected ? Colors.green.shade900 : Colors.black26,
+                        side: BorderSide(color: const Color(0xFF8B9F7A), width: isSelected ? 3 : 1),
+                        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 32),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                       ),
-                    ],
-                  ),
-                ),
+                      onPressed: () => notifier.setTheme(theme),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(icon, size: 36, color: isSelected ? Colors.white : const Color(0xFF8B9F7A)),
+                          const SizedBox(width: 20),
+                          Column(
+                            children: [
+                              Text(
+                                theme.displayName.split(' ').first,
+                                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : const Color(0xFF4A3728)),
+                              ),
+                              Text(
+                                theme.displayName.split(' ').last,
+                                style: TextStyle(fontSize: 16, color: isSelected ? Colors.white70 : const Color(0xFF4A3728)),
+                              ),
+                            ],
+                          ),
+                          if (isSelected) ...[
+                            const SizedBox(width: 20),
+                            const Icon(Icons.check_circle, color: Colors.white, size: 36),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+
                 _bambooSlider(
                   label: 'Animations-Intensität',
                   value: settings.animationIntensity,
