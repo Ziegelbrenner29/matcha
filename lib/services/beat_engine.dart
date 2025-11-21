@@ -2,7 +2,7 @@
 import 'dart:async';  // <--- DAS FEHLTE!
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:matcha/core/constants.dart';
+import 'package:konpira/core/constants.dart';
 
 class BeatEngine {
   final AudioPlayer _player = AudioPlayer();

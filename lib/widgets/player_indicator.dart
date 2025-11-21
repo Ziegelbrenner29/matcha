@@ -1,7 +1,7 @@
 // lib/widgets/player_indicator.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:matcha/providers/game_provider.dart';
+import 'package:konpira/providers/game_provider.dart';
 
 class PlayerIndicator extends ConsumerWidget {
   final bool isUpper;

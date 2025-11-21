@@ -1,9 +1,11 @@
 // lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
-import 'package:matcha/screens/game_screen.dart';
-import 'package:matcha/screens/settings_screen.dart';
-import 'package:matcha/screens/info_screen.dart';
-import 'package:matcha/screens/credits_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:konpira/screens/game_screen.dart';
+import 'package:konpira/screens/settings_screen.dart';
+import 'package:konpira/screens/info_screen.dart';
+import 'package:konpira/screens/credits_screen.dart';
+import 'package:konpira/providers/settings_provider.dart';  // <<< NEU: für theme.paperAsset!
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -42,64 +44,74 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF5F0E1), Color(0xFFE8DAB2)],
+    return Consumer(builder: (context, ref, child) {
+      final theme = ref.watch(settingsProvider).theme;  // <<< LIVE THEME!
+
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage(theme.paperAsset),  // <<< Paper-Textur aus Theme!
+              fit: BoxFit.cover,
+              opacity: 0.6,
+            ),
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFF5F0E1), Color(0xFFE8DAB2)],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Stack(
-            children: [
-              const Align(
-                alignment: Alignment.topCenter,
-                child: Padding(
-                  padding: EdgeInsets.only(top: 60),
-                  child: Text(
-                    'Matcha',
-                    style: TextStyle(fontSize: 72, fontFamily: 'Zen', color: Color(0xFF4A3728)),
+          child: SafeArea(
+            child: Stack(
+              children: [
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 60),
+                    // <<< NEUER TITEL – live aus Theme (später, wenn du willst) oder direkt:
+                    child: Image.asset(
+                      'assets/images/konpira_title.png',
+                      height: 180,  // passt perfekt – teste ggf. 160–200
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
-              ),
 
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildVariantButton('Konpira fune fune', 'konpira'),
-                    const SizedBox(height: 40),
-                    _buildVariantButton('Matcha pon!', 'matchapon'),
-
-                    // <<< TEST-BUTTON ENTFERNT – jetzt nur noch in Settings!
-                  ],
-                ),
-              ),
-
-              // Footer – jetzt wieder mit const (dank _FooterIcon + const in Screens)
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 40),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      _FooterIcon(icon: Icons.settings, screen: SettingsScreen()),
-                      SizedBox(width: 40),
-                      _FooterIcon(icon: Icons.info_outline, screen: InfoScreen()),
-                      SizedBox(width: 40),
-                      _FooterIcon(icon: Icons.favorite_outline, screen: CreditsScreen()),
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildVariantButton('Konpira fune fune', 'konpira'),
+                      const SizedBox(height: 40),
+                      _buildVariantButton('Matcha pon!', 'matchapon'),
+                      // Test-Button entfernt – ist jetzt in Settings!
                     ],
                   ),
                 ),
-              ),
-            ],
+
+                // Footer
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 40),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        _FooterIcon(icon: Icons.settings, screen: SettingsScreen()),
+                        SizedBox(width: 40),
+                        _FooterIcon(icon: Icons.info_outline, screen: InfoScreen()),
+                        SizedBox(width: 40),
+                        _FooterIcon(icon: Icons.favorite_outline, screen: CreditsScreen()),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   Widget _buildVariantButton(String title, String variant) {
@@ -181,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 }
 
-// Private Footer-Icon Widget – außerhalb der State-Klasse!
+// Private Footer-Icon Widget
 class _FooterIcon extends StatelessWidget {
   final IconData icon;
   final Widget screen;

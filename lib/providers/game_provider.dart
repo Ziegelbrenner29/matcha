@@ -2,11 +2,11 @@
 import 'package:flutter/foundation.dart'; // für debugPrint
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:matcha/models/game_state.dart';
-import 'package:matcha/core/constants.dart';
-import 'package:matcha/services/haptics_service.dart';
-import 'package:matcha/providers/beat_engine_provider.dart';
-import 'package:matcha/providers/settings_provider.dart'; // für bgmVolume!
+import 'package:konpira/models/game_state.dart';
+import 'package:konpira/core/constants.dart';
+import 'package:konpira/services/haptics_service.dart';
+import 'package:konpira/providers/beat_engine_provider.dart';
+import 'package:konpira/providers/settings_provider.dart'; // für bgmVolume!
 
 final gameProvider = StateNotifierProvider<GameNotifier, GameState>((ref) {
   return GameNotifier(ref);

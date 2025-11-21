@@ -1,9 +1,9 @@
 // lib/widgets/chawan_widget.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:matcha/models/game_state.dart';
-import 'package:matcha/providers/settings_provider.dart';  // für theme.chawanAsset
-import 'package:matcha/core/constants.dart';
+import 'package:konpira/models/game_state.dart';
+import 'package:konpira/providers/settings_provider.dart';  // für theme.chawanAsset
+import 'package:konpira/core/constants.dart';
 
 class ChawanWidget extends ConsumerWidget {
   final GameState state;

@@ -9,7 +9,7 @@ enum AppTheme {
 
 extension AppThemeExtension on AppTheme {
   String get paperAsset => 'assets/images/themes/paper_${index + 1}.png';
-  String get bambooAsset => 'assets/images/themes/bamboo_track_${index + 1}.png';  // falls du track_1 etc. hast
+  String get bambooAsset => 'assets/images/themes/bamboo_track_${index + 1}.png';
   String get chawanAsset => switch (this) {
     AppTheme.washiClassic => 'assets/images/themes/chawan_beige.png',
     AppTheme.matchaGarden => 'assets/images/themes/chawan_green.png',

@@ -1,12 +1,13 @@
 // lib/screens/game_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:matcha/providers/game_provider.dart';
-import 'package:matcha/providers/beat_engine_provider.dart';
-import 'package:matcha/models/game_state.dart';
-import 'package:matcha/widgets/chawan_widget.dart';
-import 'package:matcha/widgets/player_indicator.dart';
-import 'package:matcha/core/constants.dart';
+import 'package:konpira/providers/game_provider.dart';
+import 'package:konpira/providers/beat_engine_provider.dart';
+import 'package:konpira/models/game_state.dart';
+import 'package:konpira/widgets/chawan_widget.dart';
+import 'package:konpira/widgets/player_indicator.dart';
+import 'package:konpira/core/constants.dart';
+import 'package:konpira/providers/settings_provider.dart';  // <<< NEU: für theme.paperAsset!
 
 class GameScreen extends ConsumerWidget {
   final String variant;
@@ -18,52 +19,66 @@ class GameScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final gameState = ref.watch(gameProvider);
     final size = MediaQuery.of(context).size;
+    final theme = ref.watch(settingsProvider).theme;  // <<< LIVE THEME!
 
-    // <<< TYPISIERTER LISTEN – jetzt 100% zuverlässig! Musik + Beat starten automatisch
+    // Musik + Beat starten automatisch
     ref.listen<GameState>(gameProvider, (previous, next) {
-  if (next.phase == GamePhase.waitingForTapOnBowl && next.winner.isEmpty) {
-    debugPrint('🎶 GameScreen: waitingForTapOnBowl erkannt – Variant: $variant');
-    ref.read(beatEngineProvider).start(variant);
-    ref.read(gameProvider.notifier).startMusic(variant);
-  }
-});
+      if (next.phase == GamePhase.waitingForTapOnBowl && next.winner.isEmpty) {
+        debugPrint('🎶 GameScreen: waitingForTapOnBowl erkannt – Variant: $variant');
+        ref.read(beatEngineProvider).start(variant);
+        ref.read(gameProvider.notifier).startMusic(variant);
+      }
+    });
 
     return Scaffold(
-      body: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (d) => _handleTap(d.localPosition, size, ref, false),
-        onDoubleTapDown: (d) => _handleTap(d.localPosition, size, ref, true),
-        onLongPressStart: (d) => _handleLongPress(d.localPosition, size, ref),
-        onScaleStart: (_) => _handleScaleStart(ref),
-        onScaleUpdate: (d) => _handleScaleUpdate(d, ref),
-        onScaleEnd: (_) => _handleScaleEnd(ref),
-        child: Stack(
-          children: [
-            Container(color: const Color(0xFFF5F0E1)),
-            ChawanWidget(state: gameState),
-            const PlayerIndicator(isUpper: true),
-            const PlayerIndicator(isUpper: false),
-            if (gameState.phase == GamePhase.gameOver)
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      gameState.winner == 'player1' ? 'Du gewinnst!' : 'Verloren!',
-                      style: const TextStyle(fontSize: 64, color: Color(0xFF4A3728), fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 40),
-                    ElevatedButton(
-                      onPressed: () {
-                        ref.read(gameProvider.notifier).reset();
-                        ref.read(beatEngineProvider).start(variant);
-                      },
-                      child: const Text('Nochmal!', style: TextStyle(fontSize: 32)),
-                    ),
-                  ],
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage(theme.paperAsset),  // <<< Paper-Textur aus Theme!
+            fit: BoxFit.cover,
+            opacity: 0.6,
+          ),
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF5F0E1), Color(0xFFE8DAB2)],
+          ),
+        ),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (d) => _handleTap(d.localPosition, size, ref, false),
+          onDoubleTapDown: (d) => _handleTap(d.localPosition, size, ref, true),
+          onLongPressStart: (d) => _handleLongPress(d.localPosition, size, ref),
+          onScaleStart: (_) => _handleScaleStart(ref),
+          onScaleUpdate: (d) => _handleScaleUpdate(d, ref),
+          onScaleEnd: (_) => _handleScaleEnd(ref),
+          child: Stack(
+            children: [
+              ChawanWidget(state: gameState),  // wechselt schon live!
+              const PlayerIndicator(isUpper: true),
+              const PlayerIndicator(isUpper: false),
+              if (gameState.phase == GamePhase.gameOver)
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        gameState.winner == 'player1' ? 'Du gewinnst!' : 'Verloren!',
+                        style: const TextStyle(fontSize: 64, color: Color(0xFF4A3728), fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 40),
+                      ElevatedButton(
+                        onPressed: () {
+                          ref.read(gameProvider.notifier).reset();
+                          ref.read(beatEngineProvider).start(variant);
+                        },
+                        child: const Text('Nochmal!', style: TextStyle(fontSize: 32)),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
