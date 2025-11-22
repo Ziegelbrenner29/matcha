@@ -1,5 +1,5 @@
 // lib/screens/game_screen.dart
-// ────────  KONPIRA GAME SCREEN – 22.11.2025 MIT PULSIERENDEM BPM-KREIS!  ────────
+// ────────  KONPIRA GAME SCREEN – 22.11.2025 SPEED-UP + BPM PULSIERT + KORREKT BEIM ERSTEN MAL!  ────────
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +7,7 @@ import 'package:konpira/widgets/chawan_widget.dart';
 import 'package:konpira/providers/settings_provider.dart';
 import 'package:konpira/providers/bgm_provider.dart';
 import 'package:konpira/providers/game_provider.dart';
+import 'package:konpira/providers/beat_engine_provider.dart';
 import 'package:konpira/models/game_state.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
@@ -58,11 +59,14 @@ class _GameScreenState extends ConsumerState<GameScreen> with TickerProviderStat
     final size = MediaQuery.of(context).size;
     final settings = ref.watch(settingsProvider);
     final gameState = ref.watch(gameProvider);
+    
     final isPlayerOneTurn = gameState.isPlayer1Turn;
     final faceEachOther = settings.playersFaceEachOther;
 
-    // ★★★★★ LIVE BPM BERECHNUNG ★★★★★
-    final currentBpm = (60000 / settings.gameDifficulty.baseBeatIntervalMs).round();
+    // ★★★★★ LIVE BEATENGINE STATE – FÜR EXAKTEN PULS & KORREKTEN BPM BEIM ERSTEN MAL! ★★★★★
+    final beatEngineState = ref.watch(beatEngineProvider).state;
+    final beatCount = beatEngineState.beatCount;
+    final currentBpm = beatEngineState.currentBpm;
 
     return PopScope(
       onPopInvoked: (didPop) async {
@@ -102,9 +106,7 @@ class _GameScreenState extends ConsumerState<GameScreen> with TickerProviderStat
                 ),
 
                 // Chawan
-                Center(
-                  child: ChawanWidget(state: gameState),
-                ),
+                ChawanWidget(state: gameState),
 
                 // PVP-INDIKATOREN
                 _PlayerTurnIndicator(
@@ -125,10 +127,31 @@ class _GameScreenState extends ConsumerState<GameScreen> with TickerProviderStat
                   animationIntensity: settings.animationIntensity,
                 ),
 
-                // ★★★★★ NEU: PULSIERENDER BPM-KREIS – HERZSCHLAG DES SCHREINS! ★★★★★
+                // WARMUP-OVERLAY
+                if (gameState.phase == GamePhase.warmUp)
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'Spieler 1:\nTippe im Takt um zu starten',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // BPM-KREIS – PULSIERT EXAKT + KORREKTE BPM BEIM ERSTEN MAL!
                 BeatPulseIndicator(
-                  pulseController: _pulseController,
                   bpm: currentBpm,
+                  beatCount: beatCount,
                   animationIntensity: settings.animationIntensity,
                 ),
 
@@ -237,18 +260,54 @@ class _PlayerTurnIndicator extends StatelessWidget {
   }
 }
 
-// ─────── NEU: PULSIERENDER BPM-KREIS – ATME MIT DEM LIED! ───────
-class BeatPulseIndicator extends StatelessWidget {
-  final AnimationController pulseController;
+// ─────── BPM-KREIS – PULSIERT EXAKT IM BEAT + LIVE BPM! ───────
+class BeatPulseIndicator extends StatefulWidget {
   final int bpm;
+  final int beatCount;
   final double animationIntensity;
 
   const BeatPulseIndicator({
-    required this.pulseController,
     required this.bpm,
+    required this.beatCount,
     required this.animationIntensity,
     super.key,
   });
+
+  @override
+  State<BeatPulseIndicator> createState() => _BeatPulseIndicatorState();
+}
+
+class _BeatPulseIndicatorState extends State<BeatPulseIndicator>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulseController;
+  int _lastBeatCount = -1;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+  }
+
+  @override
+  void didUpdateWidget(BeatPulseIndicator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    
+    if (widget.beatCount != oldWidget.beatCount && widget.beatCount != _lastBeatCount) {
+      _lastBeatCount = widget.beatCount;
+      _pulseController.forward(from: 0.0).then((_) {
+        if (mounted) _pulseController.reverse();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -256,10 +315,10 @@ class BeatPulseIndicator extends StatelessWidget {
       bottom: 140,
       right: 16,
       child: AnimatedBuilder(
-        animation: pulseController,
+        animation: _pulseController,
         builder: (context, child) {
-          final pulse = 1.0 + (pulseController.value * 0.4) * animationIntensity; // Starkes Pulsieren
-          final glowOpacity = pulseController.value * 0.8 * animationIntensity;
+          final pulse = 1.0 + (_pulseController.value * 0.4 * widget.animationIntensity);
+          final glowOpacity = _pulseController.value * 0.9 * widget.animationIntensity;
 
           return Transform.scale(
             scale: pulse,
@@ -280,7 +339,7 @@ class BeatPulseIndicator extends StatelessWidget {
               ),
               child: Center(
                 child: Text(
-                  '$bpm\nBPM',
+                  '${widget.bpm}\nBPM',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: Colors.white,

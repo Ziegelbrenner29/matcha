@@ -1,5 +1,5 @@
 // lib/providers/settings_provider.dart
-// ────────  KONPIRA SETTINGS PROVIDER – 22.11.2025 FINAL & KOMPILIEREND  ────────
+// ────────  KONPIRA SETTINGS PROVIDER – 22.11.2025 SPEED-MULTIPLIER + DEBUG MODE!  ────────
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:konpira/services/persistence_service.dart';
@@ -26,17 +26,21 @@ extension AppThemeExtension on AppTheme {
       };
 }
 
-// ─────── Schwierigkeitsstufen für Beat-Geschwindigkeit ───────
+// ─────── SCHWIERIGKEIT = ECHTE LIED-GESCHWINDIGKEIT (just_audio setSpeed)! ───────
 enum GameDifficulty {
-  easy,    // ~720ms – entspannt pilgern
-  normal,  // ~652ms – original Konpira-Tempo
-  hard;    // ~580ms – Chaos-Zen!
+  easy,    // 0.9x – entspannt pilgern (~83 BPM)
+  normal,  // 1.0x – original Konpira-Tempo (~92 BPM)
+  hard;    // 1.15x – Chaos-Zen (~106 BPM)
 
-  double get baseBeatIntervalMs => switch (this) {
-        GameDifficulty.easy => 720.0,
-        GameDifficulty.normal => 652.0,
-        GameDifficulty.hard => 580.0,
+  // ECHTE Abspielgeschwindigkeit für just_audio.setSpeed()
+  double get speedMultiplier => switch (this) {
+        GameDifficulty.easy => 1.0,
+        GameDifficulty.normal => 1.25,
+        GameDifficulty.hard => 1.5,
       };
+
+  // Nur noch Fallback – wird später nicht mehr genutzt (BeatEngine hört auf Musik!)
+  double get baseBeatIntervalMs => 60000 / (92 * speedMultiplier);
 }
 
 class AppSettings {
@@ -52,9 +56,10 @@ class AppSettings {
   final AppTheme theme;
 
   // ★★★★★ NEUE EINSTELLUNGEN (2025 Originalgetreu) ★★★★★
-  final bool playersFaceEachOther;      // true = gegenüber (echtes Spiel!)
-  final GameDifficulty gameDifficulty; // easy / normal / hard
-  final bool speedUpPerRound;           // Chaos-Zen-Beschleunigung
+  final bool playersFaceEachOther;
+  final GameDifficulty gameDifficulty;
+  final bool speedUpPerRound;
+  final bool debugMode;  // ← NEU: Debug-Modus!
 
   const AppSettings({
     this.masterVolume = 0.8,
@@ -67,9 +72,10 @@ class AppSettings {
     this.timingWindowMs = 80,
     this.animationIntensity = 1.0,
     this.theme = AppTheme.washiClassic,
-    this.playersFaceEachOther = true,     // Original: gegenüber sitzen
+    this.playersFaceEachOther = true,
     this.gameDifficulty = GameDifficulty.normal,
     this.speedUpPerRound = false,
+    this.debugMode = false,  // ← NEU: Standard = AUS
   });
 
   AppSettings copyWith({
@@ -86,6 +92,7 @@ class AppSettings {
     bool? playersFaceEachOther,
     GameDifficulty? gameDifficulty,
     bool? speedUpPerRound,
+    bool? debugMode,  // ← NEU!
   }) {
     return AppSettings(
       masterVolume: masterVolume ?? this.masterVolume,
@@ -101,10 +108,10 @@ class AppSettings {
       playersFaceEachOther: playersFaceEachOther ?? this.playersFaceEachOther,
       gameDifficulty: gameDifficulty ?? this.gameDifficulty,
       speedUpPerRound: speedUpPerRound ?? this.speedUpPerRound,
+      debugMode: debugMode ?? this.debugMode,  // ← NEU!
     );
   }
 
-  // JSON für Persistence
   Map<String, dynamic> toJson() => {
         'masterVolume': masterVolume,
         'bgmVolume': bgmVolume,
@@ -119,6 +126,7 @@ class AppSettings {
         'playersFaceEachOther': playersFaceEachOther,
         'gameDifficulty': gameDifficulty.index,
         'speedUpPerRound': speedUpPerRound,
+        'debugMode': debugMode,  // ← NEU!
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
@@ -135,10 +143,11 @@ class AppSettings {
         playersFaceEachOther: json['playersFaceEachOther'] as bool? ?? true,
         gameDifficulty: GameDifficulty.values[json['gameDifficulty'] as int? ?? 1],
         speedUpPerRound: json['speedUpPerRound'] as bool? ?? false,
+        debugMode: json['debugMode'] as bool? ?? false,  // ← NEU!
       );
 }
 
-// ★★★★★ DER EINE NOTIFIER – ALLES PERSISTENT ★★★★★
+// SettingsNotifier
 class SettingsNotifier extends StateNotifier<AppSettings> {
   SettingsNotifier(AppSettings initial) : super(initial);
 
@@ -148,25 +157,25 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
     return SettingsNotifier(saved);
   }
 
-  // ★★★★★ FIX: state statt state.toJson() – Persistence erwartet AppSettings! ★★★★★
   void _save() => PersistenceService.saveAll(state);
 
-  // Alte Methoden
   void updateMasterVolume(double v) { state = state.copyWith(masterVolume: v); _save(); }
-  void updateBgmVolume(double v)     { state = state.copyWith(bgmVolume: v); _save(); }
-  void updateVoiceEnabled(bool v)    { state = state.copyWith(voiceEnabled: v); _save(); }
-  void updateSfxVolume(double v)     { state = state.copyWith(sfxVolume: v); _save(); }
+  void updateBgmVolume(double v) { state = state.copyWith(bgmVolume: v); _save(); }
+  void updateVoiceEnabled(bool v) { state = state.copyWith(voiceEnabled: v); _save(); }
+  void updateSfxVolume(double v) { state = state.copyWith(sfxVolume: v); _save(); }
   void updateHapticsIntensity(int v) { state = state.copyWith(hapticsIntensity: v); _save(); }
-  void updateTimingWindowMs(int v)   { state = state.copyWith(timingWindowMs: v); _save(); }
-  void updateMaxFakesInARow(int v)   { state = state.copyWith(maxFakesInARow: v.clamp(1, 3)); _save(); }
+  void updateTimingWindowMs(int v) { state = state.copyWith(timingWindowMs: v); _save(); }
+  void updateMaxFakesInARow(int v) { state = state.copyWith(maxFakesInARow: v.clamp(1, 3)); _save(); }
   void updateAnimationIntensity(double v) { state = state.copyWith(animationIntensity: v); _save(); }
 
   void setTheme(AppTheme theme) { state = state.copyWith(theme: theme); _save(); }
 
-  // ★★★★★ NEUE METHODEN ★★★★★
   void updatePlayersFaceEachOther(bool v) { state = state.copyWith(playersFaceEachOther: v); _save(); }
   void updateGameDifficulty(GameDifficulty difficulty) { state = state.copyWith(gameDifficulty: difficulty); _save(); }
   void updateSpeedUpPerRound(bool v) { state = state.copyWith(speedUpPerRound: v); _save(); }
+  
+  // ★★★★★ NEU: Debug-Mode Toggle ★★★★★
+  void updateDebugMode(bool v) { state = state.copyWith(debugMode: v); _save(); }
 }
 
 final settingsProvider = StateNotifierProvider<SettingsNotifier, AppSettings>((ref) {

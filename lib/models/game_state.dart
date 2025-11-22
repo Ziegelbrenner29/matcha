@@ -1,6 +1,7 @@
 // lib/models/game_state.dart
 
 enum GamePhase {
+  warmUp,
   waitingForTapOnBowl,
   waitingForTapOnHand,
   bowlTakenWaitingForKnock,
@@ -26,7 +27,7 @@ class GameState {
   });
 
   factory GameState.initial() => const GameState(
-        phase: GamePhase.waitingForTapOnBowl,
+        phase: GamePhase.warmUp,
         isPlayer1Turn: true,
         bowlOwner: BowlOwner.none,
         fakeCount: 0,

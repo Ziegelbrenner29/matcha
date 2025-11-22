@@ -15,5 +15,5 @@ const String soundTok = 'audio/tok.wav';
 const String soundPon = 'audio/pon.wav';
 const String soundDon = 'audio/don.wav';
 const String soundWind = 'audio/wind.mp3';
-const String soundKonpira = 'audio/konpira_fune_fune.mp3';
+const String soundKonpira = 'assets/audio/konpira_fune_fune.mp3';
 const String soundMatchaPon = 'audio/matcha_pon.mp3';

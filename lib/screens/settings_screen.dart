@@ -1,5 +1,5 @@
 // lib/screens/settings_screen.dart
-// ────────  KONPIRA SETTINGS – 22.11.2025 FINAL + ORIGINALGETREU  ────────
+// ────────  KONPIRA SETTINGS – 22.11.2025 FINAL + DEBUG-MODE!  ────────
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -140,7 +140,7 @@ class SettingsScreen extends ConsumerWidget {
                         const SizedBox(height: 32),
                         _sectionTitle('Gameplay'),
 
-                        // ★★★★★ NEU: PvP Sitzposition ★★★★★
+                        // PvP Sitzposition
                         const Text('Spieler-Anordnung (PvP)', style: TextStyle(fontSize: 18, color: Color(0xFF4A3728))),
                         const SizedBox(height: 8),
                         SegmentedButton<bool>(
@@ -153,7 +153,7 @@ class SettingsScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 24),
 
-                        // Max Fake-Outs – original max 3!
+                        // Max Fake-Outs
                         const Text('Max Fake-Outs in Folge', style: TextStyle(fontSize: 18, color: Color(0xFF4A3728))),
                         const SizedBox(height: 8),
                         SegmentedButton<int>(
@@ -260,9 +260,32 @@ class SettingsScreen extends ConsumerWidget {
                         }),
 
                         _bambooSlider(
-                          label: 'animations-Intensität',
+                          label: 'Animations-Intensität',
                           value: settings.animationIntensity,
                           onChanged: notifier.updateAnimationIntensity,
+                        ),
+
+                        // ★★★★★ NEU: DEBUG-MODE TOGGLE ★★★★★
+                        const SizedBox(height: 48),
+                        _sectionTitle('🛠️ Entwickler'),
+                        
+                        SwitchListTile(
+                          title: const Text(
+                            'Debug-Modus',
+                            style: TextStyle(fontSize: 18, color: Color(0xFF4A3728), fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            settings.debugMode 
+                              ? '✅ Debug-Button auf HomeScreen sichtbar' 
+                              : 'Aktiviere den Debug-Modus für Entwickler-Tools',
+                            style: TextStyle(
+                              color: settings.debugMode ? Colors.green.shade700 : const Color(0xFF4A3728),
+                              fontWeight: settings.debugMode ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                          value: settings.debugMode,
+                          activeColor: Colors.greenAccent.shade700,
+                          onChanged: notifier.updateDebugMode,
                         ),
 
                         const SizedBox(height: 48),

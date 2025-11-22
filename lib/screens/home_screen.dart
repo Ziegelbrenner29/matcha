@@ -1,10 +1,14 @@
 // lib/screens/home_screen.dart
+// ────────  KONPIRA HOME SCREEN – 22.11.2025 MIT HIGHSCORE + DEBUG-BUTTON!  ────────
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:konpira/screens/game_screen.dart';
 import 'package:konpira/screens/settings_screen.dart';
 import 'package:konpira/screens/info_screen.dart';
 import 'package:konpira/screens/credits_screen.dart';
+import 'package:konpira/screens/highscore_screen.dart';
+import 'package:konpira/screens/debug_screen.dart'; // ← NEU!
 import 'package:konpira/providers/settings_provider.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -43,7 +47,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Consumer(builder: (context, ref, child) {
-      final theme = ref.watch(settingsProvider).theme;
+      final settings = ref.watch(settingsProvider);
+      final theme = settings.theme;
+      final debugMode = settings.debugMode;  // ← NEU: Debug-Mode prüfen
 
       return Scaffold(
         body: Container(
@@ -62,30 +68,92 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           child: SafeArea(
             child: Stack(
               children: [
-                // ★★★★★ NEUER EINHEITLICHER TITEL – GENAU WIE AUF SETTINGS! ★★★★★
+                // Titel
                 Align(
                   alignment: Alignment.topCenter,
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 56), // gleicher Abstand wie Settings
+                    padding: const EdgeInsets.only(top: 56),
                     child: Image.asset(
                       'assets/images/konpira_title.png',
-                      height: 80,        // etwas kleiner – wirkt edler
+                      height: 80,
                       fit: BoxFit.contain,
                     ),
                   ),
                 ),
 
-                // Hauptinhalt etwas nach unten schieben, damit Titel Platz hat
+                // Hauptinhalt
                 Padding(
-                  padding: const EdgeInsets.only(top: 180), // Platz für Titel lassen
+                  padding: const EdgeInsets.only(top: 180),
                   child: Column(
                     children: [
                       const Spacer(flex: 2),
 
-                      // Varianten-Buttons
+                      // Game-Buttons
                       _buildVariantButton('Konpira fune fune', 'konpira'),
                       const SizedBox(height: 40),
                       _buildVariantButton('Matcha pon!', 'matchapon'),
+
+                      const SizedBox(height: 60),
+
+                      // Highscore-Button
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const HighscoreScreen()),
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF8B9F7A).withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(30),
+                            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4))],
+                          ),
+                          child: const Text(
+                            'Highscores',
+                            style: TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+
+                      // ★★★★★ NEU: DEBUG-BUTTON (nur sichtbar wenn Debug-Mode AN) ★★★★★
+                      if (debugMode) ...[
+                        const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const DebugScreen()),
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.black87,
+                              borderRadius: BorderRadius.circular(30),
+                              border: Border.all(color: Colors.greenAccent, width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.greenAccent.withOpacity(0.5),
+                                  blurRadius: 12,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(Icons.bug_report, color: Colors.greenAccent, size: 24),
+                                SizedBox(width: 12),
+                                Text(
+                                  'Debug Console',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    color: Colors.greenAccent,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
 
                       const Spacer(flex: 3),
 
@@ -189,6 +257,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 }
 
+// FooterIcon
 class _FooterIcon extends StatelessWidget {
   final IconData icon;
   final Widget screen;

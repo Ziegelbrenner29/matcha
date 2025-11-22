@@ -2,6 +2,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:konpira/services/beat_engine.dart';
 
-final beatEngineProvider = Provider<BeatEngine>((ref) {
+final beatEngineProvider = ChangeNotifierProvider<BeatEngine>((ref) {
   return BeatEngine();
 });
