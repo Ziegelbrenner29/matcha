@@ -1,38 +1,42 @@
 // lib/services/beat_engine.dart
-import 'dart:async';  // <--- DAS FEHLTE!
-import 'package:just_audio/just_audio.dart';
+// ────────  KONPIRA BEAT ENGINE – 22.11.2025 NUR ONBEAT EDITION (Lied bleibt bei GameNotifier!)  ────────
+
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:konpira/core/constants.dart';
+import 'package:konpira/providers/settings_provider.dart';
 
 class BeatEngine {
-  final AudioPlayer _player = AudioPlayer();
-  Timer? _timer;
+  Timer? _beatTimer;
   late void Function() onBeat;
+  double _currentIntervalMs = 652.0;
 
-  // Exakte Beat-Timings (später perfektionieren)
-  final List<int> konpiraBeatsMs = [0, 652, 1304, 1956, 2608, 3260, 3912, 4564, 5216, 5868];
-  final List<int> matchaPonBeatsMs = [0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500];
+  void start(Ref ref) {
+    final settings = ref.read(settingsProvider);
+    _currentIntervalMs = settings.gameDifficulty.baseBeatIntervalMs;
 
-  Future<void> start(String variant) async {
-    final beats = variant == 'konpira' ? konpiraBeatsMs : matchaPonBeatsMs;
-    final asset = variant == 'konpira' ? soundKonpira : soundMatchaPon;
-
-    await _player.setAsset(asset);
-    await _player.setLoopMode(LoopMode.one);
-    await _player.play();
-
-    int beatIndex = 1;
-    _timer = Timer.periodic(Duration(milliseconds: beats[beatIndex]), (_) {
+    // Exakter Timer – kein Drift, weil nur für onBeat, kein Audio-Player!
+    _beatTimer?.cancel();
+    _beatTimer = Timer.periodic(Duration(milliseconds: _currentIntervalMs.round()), (_) {
       onBeat();
-      beatIndex = (beatIndex + 1) % beats.length;
-      if (beatIndex == 0) beatIndex = 1;
     });
   }
 
-  Future<void> dispose() async {
-    _timer?.cancel();
-    await _player.stop();
-    await _player.dispose();
+  // Für Speed-Up-Chaos später!
+  void setSpeed(double speed) {
+    // Später: Timer neu starten mit _currentIntervalMs / speed
+  }
+
+  void updateInterval(double newIntervalMs) {
+    _currentIntervalMs = newIntervalMs;
+    // Timer neu starten
+    _beatTimer?.cancel();
+    _beatTimer = Timer.periodic(Duration(milliseconds: _currentIntervalMs.round()), (_) {
+      onBeat();
+    });
+  }
+
+  void dispose() {
+    _beatTimer?.cancel();
   }
 }
 

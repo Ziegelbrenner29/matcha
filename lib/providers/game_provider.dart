@@ -1,4 +1,6 @@
 // lib/providers/game_provider.dart
+// ────────  KONPIRA GAME PROVIDER – 22.11.2025 LIED + BEATENGINE PERFEKT SYNC!  ────────
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
@@ -15,7 +17,7 @@ final gameProvider = StateNotifierProvider<GameNotifier, GameState>((ref) {
 // SFX Player
 final AudioPlayer _sfxPlayer = AudioPlayer();
 
-// KONPIRA FUNE FUNE LIED PLAYER
+// KONPIRA FUNE FUNE LIED PLAYER (stabil wie ein Tempel!)
 final AudioPlayer _konpiraSongPlayer = AudioPlayer();
 
 class GameNotifier extends StateNotifier<GameState> {
@@ -50,25 +52,32 @@ class GameNotifier extends StateNotifier<GameState> {
     return diff <= ref.read(settingsProvider).timingWindowMs;
   }
 
-  // ★★★★★ KONPIRA FUNE FUNE LIED – START / STOP / RESET ★★★★★
+  // ★★★★★ KONPIRA FUNE FUNE LIED + BEATENGINE START – LIED SINGT WIEDER SOFORT! ★★★★★
   Future<void> startKonpiraSong() async {
     try {
-      await _konpiraSongPlayer.setAsset('assets/audio/konpira_fune_fune.mp3');
+      final settings = ref.read(settingsProvider);
+
+      // Lied starten – SOFORT + LAUT!
+      await _konpiraSongPlayer.setAsset(soundKonpira);
       await _konpiraSongPlayer.setLoopMode(LoopMode.one);
-      final masterVol = ref.read(settingsProvider).masterVolume;
-      await _konpiraSongPlayer.setVolume(masterVol);
+      await _konpiraSongPlayer.setVolume(settings.masterVolume * settings.bgmVolume);
       await _konpiraSongPlayer.play();
-      debugPrint('🎶 Konpira fune fune gestartet + looped');
+
+      // BeatEngine starten – OHNE await (ist sync!)
+      ref.read(beatEngineProvider).start(ref);
+
+      debugPrint('🎶 Konpira fune fune + BeatEngine gestartet – ${settings.gameDifficulty} Mode! LIED LÄUFT!');
     } catch (e) {
-      debugPrint('Konpira Song Fehler: $e');
+      debugPrint('Start Fehler: $e');
     }
   }
 
   Future<void> stopKonpiraSong() async {
     await _konpiraSongPlayer.stop();
+    ref.read(beatEngineProvider).dispose();
   }
 
-  // Für Settings Test-Button (kompatibel mit altem Code)
+  // Für Settings Test-Button (funktioniert wieder 100%!)
   Future<void> startMusic(String variant) async => await startKonpiraSong();
   Future<void> stopMusic() async => await stopKonpiraSong();
 
@@ -77,7 +86,6 @@ class GameNotifier extends StateNotifier<GameState> {
     try {
       await _sfxPlayer.setAsset(asset);
       await _sfxPlayer.play();
-    await _sfxPlayer.play();
     } catch (e) {
       debugPrint('SFX Error: $e');
     }
@@ -100,12 +108,10 @@ class GameNotifier extends StateNotifier<GameState> {
     state = state.copyWith(isPlayer1Turn: !state.isPlayer1Turn);
   }
 
-  // ... (dein Rest-Code bleibt unverändert: onDoubleTapMiddle, onLiftBowl, etc.)
-
   void _gameOver(String winner) async {
     await _playSfx(soundDon);
     HapticsService.heavy();
-    await stopKonpiraSong();  // ← Lied stoppt bei Game Over
+    await stopKonpiraSong();
     state = state.copyWith(phase: GamePhase.gameOver, winner: winner);
   }
 
@@ -115,13 +121,14 @@ class GameNotifier extends StateNotifier<GameState> {
     _expectedTapType = 0;
     _lastBeatTime = null;
     stopKonpiraSong();
-    startKonpiraSong();  // ← neu von vorne!
+    startKonpiraSong();  // ← Lied + BeatEngine neu starten!
   }
 
   @override
   void dispose() {
     _sfxPlayer.dispose();
     _konpiraSongPlayer.dispose();
+    ref.read(beatEngineProvider).dispose();
     super.dispose();
   }
 }

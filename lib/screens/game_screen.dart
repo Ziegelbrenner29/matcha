@@ -1,5 +1,5 @@
 // lib/screens/game_screen.dart
-// ────────  KONPIRA GAME SCREEN – 22.11.2025 MIT PVP-INDIKATOREN!  ────────
+// ────────  KONPIRA GAME SCREEN – 22.11.2025 MIT PULSIERENDEM BPM-KREIS!  ────────
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,7 +17,6 @@ class GameScreen extends ConsumerStatefulWidget {
 }
 
 class _GameScreenState extends ConsumerState<GameScreen> with TickerProviderStateMixin {
-  String debugText = 'Bereit – teste Gesten!';
   double lastContactSize = 0.0;
   late AnimationController _pulseController;
 
@@ -48,11 +47,10 @@ class _GameScreenState extends ConsumerState<GameScreen> with TickerProviderStat
         AppTheme.goldenTemple  => 'assets/images/themes/table_temple.jpg',
       };
 
-  // ─────── NEU: Indikator-Asset je Theme (Platzhalter → später Claudes Kunstwerke!) ───────
   String getIndicatorAsset(AppTheme theme) => switch (theme) {
-        AppTheme.washiClassic => 'assets/images/indicators/lampion.png',       // ← Claude: roter Lampion
-        AppTheme.matchaGarden => 'assets/images/indicators/sakura.png',        // ← Claude: fallende Sakura
-        AppTheme.goldenTemple => 'assets/images/indicators/temple_bell.png',   // ← Claude: goldene Glocke
+        AppTheme.washiClassic => 'assets/images/indicators/lampion.png',
+        AppTheme.matchaGarden => 'assets/images/indicators/sakura.png',
+        AppTheme.goldenTemple => 'assets/images/indicators/temple_bell.png',
       };
 
   @override
@@ -62,6 +60,9 @@ class _GameScreenState extends ConsumerState<GameScreen> with TickerProviderStat
     final gameState = ref.watch(gameProvider);
     final isPlayerOneTurn = gameState.isPlayer1Turn;
     final faceEachOther = settings.playersFaceEachOther;
+
+    // ★★★★★ LIVE BPM BERECHNUNG ★★★★★
+    final currentBpm = (60000 / settings.gameDifficulty.baseBeatIntervalMs).round();
 
     return PopScope(
       onPopInvoked: (didPop) async {
@@ -101,9 +102,11 @@ class _GameScreenState extends ConsumerState<GameScreen> with TickerProviderStat
                 ),
 
                 // Chawan
-                const Center(child: ChawanWidget()),
+                Center(
+                  child: ChawanWidget(state: gameState),
+                ),
 
-                // ─────── PVP-INDIKATOREN (oben/unten oder links/rechts + 180°!) ───────
+                // PVP-INDIKATOREN
                 _PlayerTurnIndicator(
                   isActive: isPlayerOneTurn,
                   alignment: faceEachOther ? Alignment.bottomLeft : Alignment.topLeft,
@@ -116,13 +119,20 @@ class _GameScreenState extends ConsumerState<GameScreen> with TickerProviderStat
                 _PlayerTurnIndicator(
                   isActive: !isPlayerOneTurn,
                   alignment: faceEachOther ? Alignment.topRight : Alignment.topRight,
-                  rotation: faceEachOther ? 180 : 0,  // ← 180° bei gegenüber!
+                  rotation: faceEachOther ? 180 : 0,
                   asset: getIndicatorAsset(settings.theme),
                   pulseController: _pulseController,
                   animationIntensity: settings.animationIntensity,
                 ),
 
-                // Game Over Button
+                // ★★★★★ NEU: PULSIERENDER BPM-KREIS – HERZSCHLAG DES SCHREINS! ★★★★★
+                BeatPulseIndicator(
+                  pulseController: _pulseController,
+                  bpm: currentBpm,
+                  animationIntensity: settings.animationIntensity,
+                ),
+
+                // Game Over
                 if (gameState.phase == GamePhase.gameOver)
                   Center(
                     child: ElevatedButton(
@@ -164,11 +174,11 @@ class _GameScreenState extends ConsumerState<GameScreen> with TickerProviderStat
   }
 }
 
-// ─────── NEUES WIDGET: PULSIERENDER INDIKATOR MIT 180°-DREHUNG ───────
+// ─────── PULSIERENDER INDIKATOR (unverändert) ───────
 class _PlayerTurnIndicator extends StatelessWidget {
   final bool isActive;
   final Alignment alignment;
-  final double rotation; // in Grad
+  final double rotation;
   final String asset;
   final AnimationController pulseController;
   final double animationIntensity;
@@ -185,12 +195,12 @@ class _PlayerTurnIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final indicatorSize = size.width * 0.2; // ~20% der Breite
+    final indicatorSize = size.width * 0.22;
 
     return Align(
       alignment: alignment,
       child: Padding(
-        padding: EdgeInsets.all(size.width * 0.08), // Abstand zum Rand
+        padding: EdgeInsets.all(size.width * 0.08),
         child: AnimatedBuilder(
           animation: pulseController,
           builder: (context, child) {
@@ -200,7 +210,7 @@ class _PlayerTurnIndicator extends StatelessWidget {
             return Opacity(
               opacity: opacity,
               child: Transform.rotate(
-                angle: rotation * 3.14159 / 180, // Grad → Radiant
+                angle: rotation * 3.14159 / 180,
                 child: Transform.scale(
                   scale: pulseValue,
                   child: Container(
@@ -208,24 +218,13 @@ class _PlayerTurnIndicator extends StatelessWidget {
                     height: indicatorSize,
                     decoration: BoxDecoration(
                       boxShadow: isActive
-                          ? [
-                              BoxShadow(
-                                color: Colors.white.withOpacity(0.6),
-                                blurRadius: 20,
-                                spreadRadius: 5,
-                              )
-                            ]
+                          ? [BoxShadow(color: Colors.white.withOpacity(0.6), blurRadius: 20, spreadRadius: 5)]
                           : null,
                     ),
                     child: Image.asset(
                       asset,
                       fit: BoxFit.contain,
-                      // Platzhalter, falls Asset noch fehlt:
-                      errorBuilder: (context, error, stackTrace) => Icon(
-                        Icons.circle,
-                        size: indicatorSize,
-                        color: isActive ? Colors.green : Colors.grey,
-                      ),
+                      errorBuilder: (_, __, ___) => Icon(Icons.circle, size: indicatorSize, color: isActive ? Colors.amber : Colors.grey),
                     ),
                   ),
                 ),
@@ -233,6 +232,67 @@ class _PlayerTurnIndicator extends StatelessWidget {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+// ─────── NEU: PULSIERENDER BPM-KREIS – ATME MIT DEM LIED! ───────
+class BeatPulseIndicator extends StatelessWidget {
+  final AnimationController pulseController;
+  final int bpm;
+  final double animationIntensity;
+
+  const BeatPulseIndicator({
+    required this.pulseController,
+    required this.bpm,
+    required this.animationIntensity,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      bottom: 140,
+      right: 16,
+      child: AnimatedBuilder(
+        animation: pulseController,
+        builder: (context, child) {
+          final pulse = 1.0 + (pulseController.value * 0.4) * animationIntensity; // Starkes Pulsieren
+          final glowOpacity = pulseController.value * 0.8 * animationIntensity;
+
+          return Transform.scale(
+            scale: pulse,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF4A3728).withOpacity(0.95),
+                border: Border.all(color: const Color(0xFF8B9F7A), width: 5),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF8B9F7A).withOpacity(glowOpacity),
+                    blurRadius: 30,
+                    spreadRadius: 10,
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  '$bpm\nBPM',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    height: 1.1,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

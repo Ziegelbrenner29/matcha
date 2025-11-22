@@ -47,6 +47,7 @@ flutter:
     - assets/rive/
     - assets/icons/
     - assets/images/themes/
+    - assets/images/indicators/
 
   # Zen-Fonts – auskommentiert, bis du die TTFs wirklich reinlegst
   # fonts:
